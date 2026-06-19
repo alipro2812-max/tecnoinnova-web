@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TecnoInnova S.A. — Sistema de Gestión</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #0057b8;
+      --primary-dark: #1a2b4a;
+      --accent: #0099ff;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+      --success: #059669;
+      --warning: #d97706;
+      --sidebar-bg: #1a2b4a;
+      --sidebar-text: #cbd5e1;
+      --sidebar-accent: #60a5fa;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ===== LOGIN ===== */
+    #login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    }
+    .login-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo .logo-icon {
+      width: 64px; height: 64px;
+      background: var(--primary);
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .login-logo .logo-icon svg { width: 36px; height: 36px; fill: white; }
+    .login-logo h1 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .login-logo p { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+    .tab-switcher {
+      display: flex;
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1; padding: 8px; border: none; background: transparent;
+      border-radius: 6px; font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; color: var(--text-muted); transition: all 0.2s;
+    }
+    .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      font-size: 0.9rem; color: var(--text); background: var(--bg);
+      transition: border-color 0.2s; outline: none;
+    }
+    .form-group input:focus { border-color: var(--primary); background: white; }
+
+    .btn-primary {
+      width: 100%; padding: 12px;
+      background: var(--primary); color: white;
+      border: none; border-radius: var(--radius);
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; margin-top: 8px;
+    }
+    .btn-primary:hover { background: #004a9e; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .msg { font-size: 0.8rem; text-align: center; margin-top: 12px; padding: 8px; border-radius: 6px; }
+    .msg.error { background: #fef2f2; color: var(--danger); }
+    .msg.success { background: #f0fdf4; color: var(--success); }
+
+    /* ===== DASHBOARD ===== */
+    #app { display: none; height: 100vh; overflow: hidden; }
+    .layout { display: flex; height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px; min-width: 240px;
+      background: var(--sidebar-bg);
+      display: flex; flex-direction: column;
+      padding: 0;
+    }
+    .sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; }
+    .sidebar-logo .s-icon {
+      width: 36px; height: 36px; background: var(--primary);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-logo .s-icon svg { width: 20px; height: 20px; fill: white; }
+    .sidebar-logo span { font-size: 0.95rem; font-weight: 700; color: white; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.3); text-transform: uppercase;
+      padding: 0 8px; margin: 16px 0 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 7px;
+      color: var(--sidebar-text); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
+      border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+    .nav-item:hover { background: rgba(96,165,250,0.12); color: white; }
+    .nav-item:hover svg { opacity: 1; }
+    .nav-item.active { background: rgba(96,165,250,0.18); color: var(--sidebar-accent); }
+    .nav-item.active svg { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 0.75rem; font-weight: 700; color: white;
+    }
+    .user-detail span { display: block; }
+    .user-detail .uname { font-size: 0.8rem; font-weight: 600; color: white; }
+    .user-detail .uemail { font-size: 0.7rem; color: var(--sidebar-text); }
+    .btn-logout {
+      width: 100%; padding: 8px; background: rgba(220,38,38,0.15);
+      color: #fca5a5; border: none; border-radius: 6px;
+      font-size: 0.8rem; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(220,38,38,0.25); }
+
+    /* Main content */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar {
+      background: white; border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge-blue { background: #dbeafe; color: var(--primary); }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* Sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white; border-radius: var(--radius);
+      padding: 20px; border: 1px solid var(--border);
+    }
+    .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--text); margin: 6px 0 2px; }
+    .stat-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
+    }
+    .stat-icon svg { width: 20px; height: 20px; }
+    .si-blue { background: #dbeafe; } .si-blue svg { fill: var(--primary); }
+    .si-green { background: #d1fae5; } .si-green svg { fill: var(--success); }
+    .si-yellow { background: #fef3c7; } .si-yellow svg { fill: var(--warning); }
+    .si-purple { background: #ede9fe; } .si-purple svg { fill: #7c5cf6; }
+
+    /* Tables */
+    .card {
+      background: white; border-radius: var(--radius);
+      border: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .card-body { padding: 0; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      background: #f8fafc; padding: 10px 16px;
+      text-align: left; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    /* Status badges */
+    .status {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+    }
+    .s-bueno, .s-aprobado, .s-completada, .s-pagada, .s-realizado, .s-recibida, .s-activo { background: #d1fae5; color: #065f46; }
+    .s-pendiente, .s-programada, .s-enviada { background: #fef3c7; color: #92400e; }
+    .s-moroso, .s-rechazado, .s-anulada, .s-sin_respuesta { background: #fee2e2; color: #991b1b; }
+    .s-en_curso, .s-confirmada { background: #dbeafe; color: #1e40af; }
+
+    /* Forms */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group-inline label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .form-group-inline input,
+    .form-group-inline select,
+    .form-group-inline textarea {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      font-size: 0.875rem; color: var(--text); background: var(--bg);
+      transition: border-color 0.2s; outline: none; font-family: inherit;
+    }
+    .form-group-inline input:focus,
+    .form-group-inline select:focus,
+    .form-group-inline textarea:focus { border-color: var(--primary); background: white; }
+    .form-group-inline textarea { resize: vertical; min-height: 80px; }
+
+    .form-actions {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-sm {
+      padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-save { background: var(--primary); color: white; }
+    .btn-save:hover { background: #004a9e; }
+    .btn-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-cancel:hover { background: var(--border); }
+
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem; }
+    .empty { text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <h1>TecnoInnova S.A.</h1>
+      <p>Sistema de Gestión de Seguridad Electrónica</p>
+    </div>
+
+    <div class="tab-switcher">
+      <button class="tab-btn active" onclick="switchTab('login')">Iniciar Sesión</button>
+      <button class="tab-btn" onclick="switchTab('register')">Crear Cuenta</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" id="login-email" placeholder="usuario@tecnoinnova.com" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Entrar al Sistema</button>
+      <div id="login-msg" class="msg" style="display:none"></div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" style="display:none">
+      <div class="form-group">
+        <label>Nombre Completo</label>
+        <input type="text" id="reg-name" placeholder="Ej: Carlos Martínez" />
+      </div>
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" id="reg-email" placeholder="usuario@tecnoinnova.com" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña (mínimo 6 caracteres)</label>
+        <input type="password" id="reg-pass" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Crear Cuenta</button>
+      <div id="register-msg" class="msg" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="app">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="s-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          </div>
+          <span>TecnoInnova</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Principal</div>
+        <button class="nav-item active" onclick="showSection('dashboard')">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          Dashboard
+        </button>
+
+        <div class="nav-section-label">Módulos</div>
+        <button class="nav-item" onclick="showSection('clientes')">
+          <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          Clientes
+        </button>
+        <button class="nav-item" onclick="showSection('empleados')">
+          <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.35C18 2.99 16.01 1 13.65 1 12.38 1 11.24 1.56 10.48 2.47L10 3l-.48-.53C8.76 1.56 7.62 1 6.35 1 3.99 1 2 2.99 2 5.35c0 3.53 3.5 6.41 8.55 10.78L12 17.35l1.45-1.22C18.5 11.76 22 8.88 22 5.35 22 3.82 21.22 2.5 20 6z"/></svg>
+          Empleados
+        </button>
+        <button class="nav-item" onclick="showSection('pedidos')">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
+          Pedidos
+        </button>
+        <button class="nav-item" onclick="showSection('productos')">
+          <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.35C18 2.99 16.01 1 13.65 1c-1.27 0-2.41.56-3.17 1.47L10 3l-.48-.53A4.31 4.31 0 006.35 1C3.99 1 2 2.99 2 5.35c0 3.53 3.5 6.41 8.55 10.78L12 17.35l1.45-1.22C18.5 11.76 22 8.88 22 5.35 22 3.82 21.22 2.5 20 6z"/></svg>
+          Productos
+        </button>
+        <button class="nav-item" onclick="showSection('inventario')">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          Inventario
+        </button>
+        <button class="nav-item" onclick="showSection('facturas')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          Facturas
+        </button>
+        <button class="nav-item" onclick="showSection('tecnicos')">
+          <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+          Técnicos
+        </button>
+        <button class="nav-item" onclick="showSection('nuevo-cliente')">
+          <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          Nuevo Cliente
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-detail">
+            <span class="uname" id="user-name">Usuario</span>
+            <span class="uemail" id="user-email">email</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">Cerrar Sesión</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="topbar">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="topbar-right">
+          <span class="badge badge-blue">TecnoInnova S.A.</span>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="section active" id="sec-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon si-blue">
+                <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              </div>
+              <div class="stat-label">Total Clientes</div>
+              <div class="stat-value" id="stat-clientes">—</div>
+              <div class="stat-sub">Registrados en el sistema</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon si-green">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
+              </div>
+              <div class="stat-label">Pedidos Aprobados</div>
+              <div class="stat-value" id="stat-pedidos">—</div>
+              <div class="stat-sub">Pedidos activos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon si-yellow">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 21l4-4h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7 10h10v2H7v-2zm6 5H7v-2h6v2zm3-6H7V7h10v2z"/></svg>
+              </div>
+              <div class="stat-label">Productos</div>
+              <div class="stat-value" id="stat-productos">—</div>
+              <div class="stat-sub">En catálogo</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon si-purple">
+                <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+              </div>
+              <div class="stat-label">Facturas Pendientes</div>
+              <div class="stat-value" id="stat-facturas">—</div>
+              <div class="stat-sub">Por cobrar</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Últimos Pedidos</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th><th>Cliente</th><th>Servicio</th><th>Canal</th><th>Estado</th><th>Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dash-pedidos"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLIENTES -->
+        <div class="section" id="sec-clientes">
+          <div class="card">
+            <div class="card-header"><h3>Lista de Clientes</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Zona</th><th>Historial</th><th>Registro</th></tr>
+                  </thead>
+                  <tbody id="tabla-clientes"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPLEADOS -->
+        <div class="section" id="sec-empleados">
+          <div class="card">
+            <div class="card-header"><h3>Lista de Empleados</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Nombre</th><th>Cargo</th><th>Zona</th><th>Carga</th><th>Email</th><th>Activo</th></tr>
+                  </thead>
+                  <tbody id="tabla-empleados"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PEDIDOS -->
+        <div class="section" id="sec-pedidos">
+          <div class="card">
+            <div class="card-header"><h3>Gestión de Pedidos</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Cliente ID</th><th>Servicio</th><th>Canal</th><th>Estado</th><th>Fecha</th><th>Obs.</th></tr>
+                  </thead>
+                  <tbody id="tabla-pedidos"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUCTOS -->
+        <div class="section" id="sec-productos">
+          <div class="card">
+            <div class="card-header"><h3>Catálogo de Productos</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Descripción</th><th>Precio</th></tr>
+                  </thead>
+                  <tbody id="tabla-productos"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INVENTARIO -->
+        <div class="section" id="sec-inventario">
+          <div class="card">
+            <div class="card-header"><h3>Control de Inventario</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Producto ID</th><th>Disponible</th><th>Mínimo</th><th>Ubicación</th><th>Actualizado</th></tr>
+                  </thead>
+                  <tbody id="tabla-inventario"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FACTURAS -->
+        <div class="section" id="sec-facturas">
+          <div class="card">
+            <div class="card-header"><h3>Facturas</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Pedido</th><th>Subtotal</th><th>IVA %</th><th>Total</th><th>Estado</th><th>Emisión</th></tr>
+                  </thead>
+                  <tbody id="tabla-facturas"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TECNICOS -->
+        <div class="section" id="sec-tecnicos">
+          <div class="card">
+            <div class="card-header"><h3>Técnicos y Órdenes de Instalación</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>#</th><th>Pedido</th><th>Técnico ID</th><th>Fecha Prog.</th><th>Cronograma</th><th>Estado</th></tr>
+                  </thead>
+                  <tbody id="tabla-tecnicos"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NUEVO CLIENTE -->
+        <div class="section" id="sec-nuevo-cliente">
+          <div class="card">
+            <div class="card-header"><h3>Registrar Nuevo Cliente</h3></div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group-inline">
+                  <label>Nombre</label>
+                  <input type="text" id="nc-nombre" placeholder="Ej: Carlos" />
+                </div>
+                <div class="form-group-inline">
+                  <label>Apellido</label>
+                  <input type="text" id="nc-apellido" placeholder="Ej: Martínez" />
+                </div>
+                <div class="form-group-inline">
+                  <label>Teléfono</label>
+                  <input type="text" id="nc-telefono" placeholder="0414-1234567" />
+                </div>
+                <div class="form-group-inline">
+                  <label>Email</label>
+                  <input type="email" id="nc-email" placeholder="cliente@email.com" />
+                </div>
+                <div class="form-group-inline">
+                  <label>Zona Geográfica</label>
+                  <input type="text" id="nc-zona" placeholder="Ej: Punto Fijo" />
+                </div>
+                <div class="form-group-inline">
+                  <label>Historial de Pago</label>
+                  <select id="nc-historial">
+                    <option value="bueno">Bueno</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="moroso">Moroso</option>
+                  </select>
+                </div>
+                <div class="form-group-inline full">
+                  <label>Dirección</label>
+                  <textarea id="nc-direccion" placeholder="Av. Principal, Casa 12..."></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-sm btn-cancel" onclick="showSection('clientes')">Cancelar</button>
+                <button class="btn-sm btn-save" onclick="guardarCliente()">Guardar Cliente</button>
+              </div>
+              <div id="nc-msg" class="msg" style="display:none; margin: 0 20px 16px;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /app -->
+
+<script>
+  // ===== SUPABASE CONFIG =====
+  const SUPABASE_URL = 'https://jnvrhaoeojmszycbujdv.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_2KDgRGbD6xMkpVPnC1H7NA_cOkimpau';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ===== AUTH TABS =====
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+    document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.style.display = 'block';
+    el.className = 'msg ' + type;
+    el.textContent = text;
+  }
+
+  // ===== LOGIN =====
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    if (!email || !pass) { showMsg('login-msg','Completa todos los campos','error'); return; }
+    const btn = document.querySelector('#form-login .btn-primary');
+    btn.disabled = true; btn.textContent = 'Verificando...';
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+    btn.disabled = false; btn.textContent = 'Entrar al Sistema';
+    if (error) { showMsg('login-msg', error.message, 'error'); return; }
+    enterApp(data.user);
+  }
+
+  // ===== REGISTER =====
+  async function doRegister() {
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass = document.getElementById('reg-pass').value;
+    if (!name || !email || !pass) { showMsg('register-msg','Completa todos los campos','error'); return; }
+    if (pass.length < 6) { showMsg('register-msg','La contraseña debe tener al menos 6 caracteres','error'); return; }
+    const btn = document.querySelector('#form-register .btn-primary');
+    btn.disabled = true; btn.textContent = 'Creando cuenta...';
+    const { data, error } = await db.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    btn.disabled = false; btn.textContent = 'Crear Cuenta';
+    if (error) { showMsg('register-msg', error.message, 'error'); return; }
+    showMsg('register-msg', '¡Cuenta creada! Revisa tu correo para confirmar.', 'success');
+  }
+
+  // ===== LOGOUT =====
+  async function doLogout() {
+    await db.auth.signOut();
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-page').style.display = 'flex';
+  }
+
+  // ===== ENTER APP =====
+  function enterApp(user) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const email = user.email || '';
+    const name = user.user_metadata?.full_name || email.split('@')[0];
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-email').textContent = email;
+    document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+    loadDashboard();
+  }
+
+  // ===== SESSION CHECK =====
+  db.auth.onAuthStateChange((event, session) => {
+    if (session) enterApp(session.user);
+  });
+
+  // ===== NAVIGATION =====
+  const titles = {
+    dashboard: 'Dashboard', clientes: 'Clientes', empleados: 'Empleados',
+    pedidos: 'Pedidos', productos: 'Productos', inventario: 'Inventario',
+    facturas: 'Facturas', tecnicos: 'Técnicos', 'nuevo-cliente': 'Nuevo Cliente'
+  };
+
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    document.getElementById('page-title').textContent = titles[name] || name;
+    event?.currentTarget?.classList.add('active');
+    const loaders = {
+      clientes: loadClientes, empleados: loadEmpleados, pedidos: loadPedidos,
+      productos: loadProductos, inventario: loadInventario, facturas: loadFacturas,
+      tecnicos: loadTecnicos
+    };
+    if (loaders[name]) loaders[name]();
+  }
+
+  // ===== BADGE HELPER =====
+  function badge(val) {
+    if (!val) return '—';
+    return `<span class="status s-${val}">${val}</span>`;
+  }
+
+  // ===== DASHBOARD =====
+  async function loadDashboard() {
+    const [c, p, pr, f] = await Promise.all([
+      db.from('cliente').select('*', {count:'exact', head:true}),
+      db.from('pedido').select('*', {count:'exact', head:true}).eq('estado','aprobado'),
+      db.from('producto').select('*', {count:'exact', head:true}),
+      db.from('factura').select('*', {count:'exact', head:true}).eq('estado_pago','pendiente'),
+    ]);
+    document.getElementById('stat-clientes').textContent = c.count ?? 0;
+    document.getElementById('stat-pedidos').textContent = p.count ?? 0;
+    document.getElementById('stat-productos').textContent = pr.count ?? 0;
+    document.getElementById('stat-facturas').textContent = f.count ?? 0;
+
+    const { data: pedidos } = await db.from('pedido').select('*').order('fecha_pedido', {ascending:false}).limit(8);
+    const tbody = document.getElementById('dash-pedidos');
+    if (!pedidos?.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = pedidos.map(p => `
+      <tr>
+        <td>${p.id_pedido}</td>
+        <td>Cliente #${p.id_cliente}</td>
+        <td>${p.tipo_servicio}</td>
+        <td>${badge(p.canal_entrada)}</td>
+        <td>${badge(p.estado)}</td>
+        <td>${p.fecha_pedido?.split('T')[0] ?? '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ===== CLIENTES =====
+  async function loadClientes() {
+    const tbody = document.getElementById('tabla-clientes');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('cliente').select('*').order('id_cliente');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_cliente}</td>
+        <td>${r.nombre} ${r.apellido}</td>
+        <td>${r.telefono}</td>
+        <td>${r.email ?? '—'}</td>
+        <td>${r.zona_geografica}</td>
+        <td>${badge(r.historial_pago)}</td>
+        <td>${r.fecha_registro}</td>
+      </tr>`).join('');
+  }
+
+  // ===== EMPLEADOS =====
+  async function loadEmpleados() {
+    const tbody = document.getElementById('tabla-empleados');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('empleado').select('*').order('id_empleado');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_empleado}</td>
+        <td>${r.nombre} ${r.apellido}</td>
+        <td>${badge(r.cargo)}</td>
+        <td>${r.zona_asignada ?? '—'}</td>
+        <td>${r.carga_trabajo ?? 0}</td>
+        <td>${r.email ?? '—'}</td>
+        <td>${badge(r.activo ? 'activo' : 'moroso')}</td>
+      </tr>`).join('');
+  }
+
+  // ===== PEDIDOS =====
+  async function loadPedidos() {
+    const tbody = document.getElementById('tabla-pedidos');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('pedido').select('*').order('id_pedido');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_pedido}</td>
+        <td>${r.id_cliente}</td>
+        <td>${r.tipo_servicio}</td>
+        <td>${badge(r.canal_entrada)}</td>
+        <td>${badge(r.estado)}</td>
+        <td>${r.fecha_pedido?.split('T')[0] ?? '—'}</td>
+        <td title="${r.observaciones ?? ''}">${r.observaciones ? r.observaciones.substring(0,30)+'...' : '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ===== PRODUCTOS =====
+  async function loadProductos() {
+    const tbody = document.getElementById('tabla-productos');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('producto').select('*').order('id_producto');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_producto}</td>
+        <td>${r.nombre}</td>
+        <td>${r.categoria}</td>
+        <td>${r.descripcion ?? '—'}</td>
+        <td>$${Number(r.precio_unitario).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+
+  // ===== INVENTARIO =====
+  async function loadInventario() {
+    const tbody = document.getElementById('tabla-inventario');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('inventario').select('*').order('id_inventario');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_inventario}</td>
+        <td>${r.id_producto}</td>
+        <td>${r.cantidad_disp}</td>
+        <td>${r.cantidad_minima}</td>
+        <td>${r.ubicacion ?? '—'}</td>
+        <td>${r.fecha_actualizacion?.split('T')[0] ?? '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ===== FACTURAS =====
+  async function loadFacturas() {
+    const tbody = document.getElementById('tabla-facturas');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('factura').select('*').order('id_factura');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_factura}</td>
+        <td>${r.id_pedido}</td>
+        <td>$${Number(r.subtotal).toFixed(2)}</td>
+        <td>${r.impuesto}%</td>
+        <td>$${Number(r.total).toFixed(2)}</td>
+        <td>${badge(r.estado_pago)}</td>
+        <td>${r.fecha_emision}</td>
+      </tr>`).join('');
+  }
+
+  // ===== TECNICOS =====
+  async function loadTecnicos() {
+    const tbody = document.getElementById('tabla-tecnicos');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
+    const { data } = await db.from('orden_instalacion').select('*').order('id_orden');
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin datos</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.id_orden}</td>
+        <td>${r.id_pedido}</td>
+        <td>${r.id_tecnico}</td>
+        <td>${r.fecha_programada}</td>
+        <td title="${r.cronograma ?? ''}">${r.cronograma ? r.cronograma.substring(0,40)+'...' : '—'}</td>
+        <td>${badge(r.estado)}</td>
+      </tr>`).join('');
+  }
+
+  // ===== GUARDAR CLIENTE =====
+  async function guardarCliente() {
+    const nombre = document.getElementById('nc-nombre').value.trim();
+    const apellido = document.getElementById('nc-apellido').value.trim();
+    const telefono = document.getElementById('nc-telefono').value.trim();
+    const email = document.getElementById('nc-email').value.trim();
+    const zona = document.getElementById('nc-zona').value.trim();
+    const historial = document.getElementById('nc-historial').value;
+    const direccion = document.getElementById('nc-direccion').value.trim();
+
+    if (!nombre || !apellido || !telefono || !zona || !direccion) {
+      showMsg('nc-msg', 'Por favor completa todos los campos obligatorios.', 'error'); return;
+    }
+
+    const { error } = await db.from('cliente').insert([{
+      nombre, apellido, telefono,
+      email: email || null,
+      zona_geografica: zona,
+      historial_pago: historial,
+      direccion,
+      fecha_registro: new Date().toISOString().split('T')[0]
+    }]);
+
+    if (error) { showMsg('nc-msg', 'Error: ' + error.message, 'error'); return; }
+
+    showMsg('nc-msg', '¡Cliente registrado exitosamente!', 'success');
+    ['nc-nombre','nc-apellido','nc-telefono','nc-email','nc-zona','nc-direccion'].forEach(id => document.getElementById(id).value = '');
+    setTimeout(() => showSection('clientes'), 1500);
+  }
+</script>
+</body>
+</html>
